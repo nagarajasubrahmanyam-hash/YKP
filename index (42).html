@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Yoga Karaka Playground</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+
+        /* South Indian Chart Layout Configuration */
+        .chart-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            grid-template-rows: repeat(4, 1fr);
+            gap: 4px;
+            width: 100%;
+            max-width: 450px;
+            aspect-ratio: 1 / 1;
+            margin: 0 auto;
+            background: #cbd5e1;
+            padding: 4px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+
+        .rasi-box {
+            background-color: white;
+            border-radius: 4px;
+            position: relative;
+            padding: 4px;
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            min-height: 0;
+        }
+
+        .rasi-box:hover {
+            background-color: #f1f5f9;
+        }
+
+        .rasi-box.highlight {
+            background-color: #e0f2fe;
+            border: 2px dashed #0284c7;
+        }
+
+        .rasi-label {
+            position: absolute;
+            bottom: 4px;
+            right: 4px;
+            font-size: 0.65rem;
+            color: #94a3b8;
+            font-weight: 500;
+        }
+
+        .bhava-label {
+            position: absolute;
+            top: 4px;
+            right: 4px;
+            font-size: 0.75rem;
+            color: #0284c7;
+            font-weight: 700;
+            background: #e0f2fe;
+            padding: 2px 6px;
+            border-radius: 999px;
+        }
+
+        /* Empty center boxes to create the hollow square look */
+        .empty-center {
+            background: transparent;
+            pointer-events: none;
+            grid-column: span 2;
+            grid-row: span 2;
+        }
+
+        /* Graha (Planet) Tokens */
+        .graha {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: white;
+            cursor: grab;
+            user-select: none;
+            box-shadow: 0 2px 4px rgb(0 0 0 / 0.1);
+            transition: transform 0.1s, box-shadow 0.1s;
+            z-index: 10;
+        }
+        
+        .graha:active, .graha.selected {
+            transform: scale(1.1);
+            box-shadow: 0 0 0 3px #cbd5e1;
+            cursor: grabbing;
+        }
+
+        /* Specific Planet Colors */
+        .graha-su { background-color: #f97316; } /* Sun - Orange */
+        .graha-mo { background-color: #94a3b8; } /* Moon - Silver/Grey */
+        .graha-ma { background-color: #ef4444; } /* Mars - Red */
+        .graha-me { background-color: #22c55e; } /* Mercury - Green */
+        .graha-ju { background-color: #eab308; } /* Jupiter - Yellow */
+        .graha-ve { background-color: #ec4899; } /* Venus - Pink */
+        .graha-sa { background-color: #1e293b; } /* Saturn - Dark Blue/Black */
+        .graha-ra { background-color: #64748b; } /* Rahu - Slate */
+        .graha-ke { background-color: #a8a29e; } /* Ketu - Warm Grey */
+
+        /* Positioning the 12 Rasis in the CSS Grid */
+        #rasi-11 { grid-area: 1 / 1 / 2 / 2; } /* Pisces */
+        #rasi-0  { grid-area: 1 / 2 / 2 / 3; } /* Aries */
+        #rasi-1  { grid-area: 1 / 3 / 2 / 4; } /* Taurus */
+        #rasi-2  { grid-area: 1 / 4 / 2 / 5; } /* Gemini */
+        #rasi-3  { grid-area: 2 / 4 / 3 / 5; } /* Cancer */
+        #rasi-4  { grid-area: 3 / 4 / 4 / 5; } /* Leo */
+        #rasi-5  { grid-area: 4 / 4 / 5 / 5; } /* Virgo */
+        #rasi-6  { grid-area: 4 / 3 / 5 / 4; } /* Libra */
+        #rasi-7  { grid-area: 4 / 2 / 5 / 3; } /* Scorpio */
+        #rasi-8  { grid-area: 4 / 1 / 5 / 2; } /* Sagittarius */
+        #rasi-9  { grid-area: 3 / 1 / 4 / 2; } /* Capricorn */
+        #rasi-10 { grid-area: 2 / 1 / 3 / 2; } /* Aquarius */
+        .center-hole { grid-area: 2 / 2 / 4 / 4; } /* Empty Center */
+
+    </style>
+</head>
+<body class="text-slate-800 p-4 md:p-8 min-h-screen">
+
+    <div class="max-w-6xl mx-auto">
+        
+        <header class="mb-8 text-center md:text-left border-b pb-4 border-slate-200">
+            <h1 class="text-3xl font-bold text-slate-900">Yoga Karaka Playground</h1>
+            <p class="text-slate-500 mt-2">Explore the effects of planetary placements across different Lagnas (Ascendants).</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            <!-- Left Column: Controls & Chart -->
+            <div class="col-span-1 lg:col-span-7 space-y-6">
+                
+                <!-- Controls -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-col sm:flex-row gap-4 items-center justify-between">
+                    <div class="flex items-center gap-3 w-full sm:w-auto">
+                        <label for="lagna-select" class="font-semibold text-slate-700 whitespace-nowrap">Select Lagna:</label>
+                        <select id="lagna-select" class="w-full sm:w-auto bg-slate-50 border border-slate-300 text-slate-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 outline-none">
+                            <option value="0">Aries (Mesha)</option>
+                            <option value="1">Taurus (Vrishabha)</option>
+                            <option value="2">Gemini (Mithuna)</option>
+                            <option value="3">Cancer (Karka)</option>
+                            <option value="4">Leo (Simha)</option>
+                            <option value="5">Virgo (Kanya)</option>
+                            <option value="6">Libra (Tula)</option>
+                            <option value="7">Scorpio (Vrischika)</option>
+                            <option value="8">Sagittarius (Dhanu)</option>
+                            <option value="9">Capricorn (Makara)</option>
+                            <option value="10">Aquarius (Kumbha)</option>
+                            <option value="11">Pisces (Meena)</option>
+                        </select>
+                    </div>
+                    <button onclick="resetChart()" class="text-sm px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg transition font-medium">
+                        Reset Board
+                    </button>
+                </div>
+
+                <!-- South Indian Chart Grid -->
+                <div class="chart-container" id="chart-board">
+                    <!-- Rasi Boxes will be injected here via JS -->
+                </div>
+
+                <!-- Graha Dock (Planet Palette) -->
+                <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100">
+                    <h3 class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-3">Grahas (Planets)</h3>
+                    <p class="text-xs text-slate-500 mb-4">Drag and drop planets into houses, or click to select and move.</p>
+                    <div class="flex flex-wrap gap-3 min-h-[60px] p-2 -m-2 rounded-lg transition-colors" id="graha-dock">
+                        <!-- Planets will be injected here -->
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Column: Results & Interpretations -->
+            <div class="col-span-1 lg:col-span-5">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 h-full min-h-[400px]">
+                    <h2 class="text-xl font-bold text-slate-800 mb-4 flex items-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-blue-500"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                        Placements & Yogas
+                    </h2>
+                    
+                    <div id="results-panel" class="space-y-4">
+                        <div class="text-slate-400 italic text-center mt-10">
+                            Place planets on the board to see their effects based on the selected Lagna.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // --- 1. EXTRACTED DATA STRUCTURE ---
+        // Extracted directly from the manuscript
+        // This structure natively supports single planets and combinations (Janta Yogas)
+        const astrologicalData = {
+            0: { // 0 = Aries Lagna
+                lagnaName: "Aries (Mesha)",
+                info: "Saturn, Mercury, and Venus are malefics as they are lords of inauspicious houses. Sun and Mars are benefics.",
+                benefics: ["Su", "Ma"],
+                malefics: ["Sa", "Me", "Ve"],
+                singlePlacements: {
+                    "Su": [1, 2, 4, 5, 7, 9],
+                    "Mo": [1, 2, 4, 5, 7, 9, 10, 11],
+                    "Ma": [1, 3, 5, 6, 9, 10, 11],
+                    "Me": [3, 6, 8, 11, 12],
+                    "Ju": [1, 4, 5, 7, 9],
+                    "Ve": [1, 2, 4, 5, 7, 9, 10, 11, 12],
+                    "Sa": [3, 4, 6, 7, 10, 11],
+                    "Ra": [2, 3, 5, 6, 9],
+                    "Ke": [2, 3, 5, 6, 9]
+                },
+                jantaYogas: [
+                    { planets: ["Su", "Mo"], houses: [1, 4, 5, 9], result: "Favorable" },
+                    { planets: ["Su", "Ma"], houses: [1, 5, 6, 9], result: "Favorable" },
+                    { planets: ["Su", "Me"], houses: [1, 5, 6, 9], result: "Favorable" },
+                    { planets: ["Su", "Ju"], houses: [1, 4, 5, 9], result: "Favorable" },
+                    { planets: ["Su", "Ve"], houses: [1, 4, 5, 9], result: "Favorable" },
+                    { planets: ["Mo", "Ma"], houses: [1, 2, 5, 7, 9, 10], result: "Favorable" },
+                    { planets: ["Ju", "Mo"], houses: [1, 2, 4, 5, 7, 9, 11], result: "Favorable" },
+                    { planets: ["Ve", "Mo"], houses: [1, 2, 4, 5, 7, 9, 12], result: "Favorable" },
+                    { planets: ["Sa", "Mo"], houses: [2, 4, 7, 9, 10, 11], result: "Favorable" },
+                    { planets: ["Ma", "Me"], houses: [2, 7, 8, 10, 11], result: "Favorable" },
+                    { planets: ["Ma", "Ju"], houses: [1, 5, 7, 9], result: "Favorable" },
+                    { planets: ["Ma", "Ve"], houses: [1, 2, 5, 7, 9, 10], result: "Favorable" },
+                    { planets: ["Ma", "Sa"], houses: [3, 6, 7, 9, 10, 11], result: "Favorable" },
+                    { planets: ["Ju", "Me"], houses: [1, 2, 4, 5, 7, 9], result: "Favorable" },
+                    { planets: ["Ve", "Sa"], houses: [2, 4, 7, 9, 10, 11], result: "Favorable" },
+                    { planets: ["Su", "Mo", "Ma", "Ju"], houses: [1, 4, 5, 7, 9, 10], result: "Highly Favorable in Kendras/Trikonas." },
+                    { planets: ["Sa", "Ju"], houses: [2, 3, 5, 6, 8, 9, 11, 12], result: "Sluggishness/Dullness." },
+                    { planets: ["Sa", "Ju"], houses: [1, 4, 7, 10], result: "Loss of wealth/Heavy expenses in Kendras." }
+                ]
+            },
+            1: { // 1 = Taurus Lagna
+                lagnaName: "Taurus (Vrishabha)",
+                info: "Saturn, Sun, and Mercury are benefics. Jupiter, Venus, and Moon are malefics. (Note: Except Sun and Mars, other planets in Maraka sthanas cause strong maraka).",
+                benefics: ["Sa", "Su", "Me"],
+                malefics: ["Ju", "Ve", "Mo"],
+                singlePlacements: {
+                    "Su": [1, 2, 4, 5, 7, 9, 10, 11],
+                    "Mo": [1, 3, 6, 7, 8, 11, 12],
+                    "Ma": [6, 7, 9, 10, 11],
+                    "Me": [1, 2, 4, 5, 9, 10],
+                    "Ju": [1, 3, 6, 8, 11, 12],
+                    "Ve": [1, 2, 6, 8, 11, 12],
+                    "Sa": [1, 2, 4, 5, 8, 9, 10, 11],
+                    "Ra": [1, 2, 3, 4, 5, 6, 8, 11],
+                    "Ke": [3, 6, 11]
+                },
+                jantaYogas: [
+                    { planets: ["Su", "Ma"], houses: [1, 4, 5, 7, 9, 10, 11, 12], result: "Highly Favorable. Exception: Gives no yoga if placed in Kendras/Trikonas." },
+                    { planets: ["Su", "Me"], houses: [1, 2, 4, 7, 9, 10, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Su", "Sa"], houses: [1, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ju", "Mo"], houses: [3, 6, 8, 11], result: "Highly Favorable" },
+                    { planets: ["Ve", "Mo"], houses: [3, 6, 8, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ve", "Ju"], houses: [3, 6, 8, 11], result: "Highly Favorable" },
+                    { planets: ["Me", "Ve"], houses: [1, 2, 4, 5, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Me", "Sa"], houses: [1, 2, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ve", "Sa"], houses: [1, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" }
+                ]
+            },
+            2: { // 2 = Gemini Lagna
+                lagnaName: "Gemini (Mithuna)",
+                info: "Venus and Mercury are Raja Yoga providers (benefics). Mars, Jupiter, Sun, and Moon are malefics. Saturn is not a Maraka (killer). Jupiter-Venus-Mercury combination in Kendras/Trikonas forms Akhanda Yoga. Jupiter-Saturn connection creates Avayoga.",
+                benefics: ["Ve", "Me"],
+                malefics: ["Ma", "Ju", "Su", "Mo"],
+                singlePlacements: {
+                    "Su": [3, 6, 8, 11, 12],
+                    "Mo": [1, 2, 4, 5, 7, 9, 10, 11],
+                    "Ma": [3, 6, 8, 11],
+                    "Me": [1, 2, 4, 5, 7, 9, 10, 11],
+                    "Ju": [1, 2, 4, 5, 7, 9, 10, 11],
+                    "Ve": [1, 2, 5, 7, 9, 10, 11, 12],
+                    "Sa": [5, 8, 9, 10],
+                    "Ra": [1, 3, 4, 10, 11],
+                    "Ke": [1, 3, 6, 9, 10, 11]
+                },
+                jantaYogas: [
+                    { planets: ["Su", "Ma"], houses: [3, 6, 8, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Me"], houses: [1, 3, 4, 7, 9, 11], result: "Highly Favorable" },
+                    { planets: ["Mo", "Ma"], houses: [1, 4, 5, 7, 8, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Mo", "Me"], houses: [1, 2, 4, 5, 7, 9, 11], result: "Highly Favorable" },
+                    { planets: ["Mo", "Ju"], houses: [1, 2, 4, 5, 7, 9, 10, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Mo", "Ve"], houses: [1, 2, 7, 9, 10, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Mo", "Sa"], houses: [1, 2, 4, 5, 7, 8, 9, 10], result: "Highly Favorable" },
+                    { planets: ["Me", "Ju"], houses: [1, 2, 4, 5, 7, 9, 11], result: "Highly Favorable" },
+                    { planets: ["Me", "Ve"], houses: [1, 2, 5, 7, 9], result: "Highly Favorable" },
+                    { planets: ["Me", "Sa"], houses: [1, 2, 4, 5, 7], result: "Highly Favorable" },
+                    { planets: ["Ju", "Ve"], houses: [1, 2, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ju", "Ve", "Me"], houses: [1, 4, 5, 7, 9, 10], result: "Akhanda Yoga - Extremely favorable combination in Kendras/Trikonas." },
+                    { planets: ["Ju", "Sa"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Avayoga - Unfavorable connection." }
+                ]
+            },
+            3: { // 3 = Cancer Lagna
+                lagnaName: "Cancer (Karka)",
+                info: "Mercury and Venus are malefics. Mars and Jupiter are benefics. Mars is a Raja Yoga Karaka. Saturn-Mercury-Venus combination yields great results. Mars is favorable in Kendras (1,4,7,10), but causes Avayoga in Trikonas (5,9) (though negative effects reduce if in its own sign).",
+                benefics: ["Ma", "Ju"],
+                malefics: ["Me", "Ve"],
+                singlePlacements: {
+                    "Su": [1, 2, 5, 9, 10, 11],
+                    "Mo": [1, 2, 4, 7, 9, 10, 11],
+                    "Ma": [2, 4, 5, 7, 9, 10, 11],
+                    "Me": [3, 6, 8, 9, 10, 12],
+                    "Ju": [1, 2, 4, 5, 9, 10, 11],
+                    "Ve": [1, 3, 6, 7, 8, 9, 10, 11],
+                    "Sa": [3, 4, 6, 7, 8, 9, 11],
+                    "Ra": [1, 2, 3, 6, 9, 10, 11],
+                    "Ke": [3, 5, 7, 9, 10, 11, 12]
+                },
+                jantaYogas: [
+                    { planets: ["Su", "Mo"], houses: [1, 2, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Ma"], houses: [1, 2, 5, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Ju"], houses: [1, 2, 5, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Ve"], houses: [1, 2, 5, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Mo", "Ma"], houses: [2, 4, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Mo", "Ju"], houses: [1, 2, 4, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Mo", "Ve"], houses: [1, 2, 4, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Mo", "Sa"], houses: [1, 4, 7, 8, 9, 11], result: "Highly Favorable" },
+                    { planets: ["Ma", "Ju"], houses: [2, 4, 5, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ma", "Ve"], houses: [4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Me", "Ve"], houses: [1, 5, 6, 8, 11], result: "Highly Favorable" },
+                    { planets: ["Me", "Sa"], houses: [3, 4, 6, 8, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Ju", "Ve"], houses: [1, 4, 5, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ju", "Sa"], houses: [1, 3, 4, 6, 8, 9, 11], result: "Highly Favorable" },
+                    { planets: ["Ve", "Sa"], houses: [4, 7, 8, 9, 11], result: "Highly Favorable" },
+                    { planets: ["Sa", "Me", "Ve"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Excellent Yoga - Saturn, Mercury, and Venus combination is extremely favorable." },
+                    { planets: ["Ma"], houses: [1, 4, 7, 10], result: "Favorable in Kendras. Mars is an exception that gives great results here." },
+                    { planets: ["Ma"], houses: [5, 9], result: "Avayoga in Trikonas. Negative effects are reduced if placed in own house (Scorpio in 5th)." }
+                ]
+            },
+            4: { // 4 = Leo Lagna
+                lagnaName: "Leo (Simha)",
+                info: "Mercury, Venus, and Saturn are malefics. Mars alone is a benefic and Raja Yoga Karaka. Jupiter-Mars combination is exceptionally auspicious (Jupiter's 8th lordship cancels Mars's trine lordship defect, turning it into a pure benefic).",
+                benefics: ["Ma"],
+                malefics: ["Me", "Ve", "Sa"],
+                singlePlacements: {
+                    "Su": [1, 2, 4, 5, 9, 10, 11],
+                    "Mo": [3, 4, 6, 8, 12],
+                    "Ma": [1, 4, 5, 6, 7, 9, 10, 11],
+                    "Me": [1, 2, 4, 5, 7, 9, 10, 11],
+                    "Ju": [1, 2, 4, 5, 8, 9, 10, 11, 12],
+                    "Ve": [1, 3, 4, 5, 8, 9, 10, 11],
+                    "Sa": [3, 5, 6, 7, 8, 10, 11],
+                    "Ra": [1, 2, 3, 5, 8, 9, 10, 11],
+                    "Ke": [2, 3, 4, 5, 6, 7, 9, 10, 11]
+                },
+                jantaYogas: [
+                    { planets: ["Su", "Ma"], houses: [1, 2, 4, 5, 6, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Me"], houses: [1, 2, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Ju"], houses: [1, 4, 5, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Ve"], houses: [1, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Mo", "Ma"], houses: [1, 2, 5, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Mo", "Ju"], houses: [3, 5, 8, 12], result: "Highly Favorable" },
+                    { planets: ["Mo", "Ve"], houses: [3, 5, 8, 10, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Mo", "Sa"], houses: [3, 5, 6, 8, 10, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Ma", "Me"], houses: [1, 2, 4, 5, 6, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ma", "Ve"], houses: [1, 4, 5, 6, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Me", "Ju"], houses: [1, 2, 5, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Me", "Ve"], houses: [1, 4, 5, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ju", "Ve"], houses: [1, 4, 5, 7, 8, 9, 10, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Ma", "Ju"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Special Yoga. Jupiter's 8th lordship removes Mars's Konadhipatya dosha, making Mars a pure benefic." }
+                ]
+            },
+            5: { // 5 = Virgo Lagna
+                lagnaName: "Virgo (Kanya)",
+                info: "Mars, Jupiter, and Moon are malefics. Venus and Mercury are benefics. The combination of any two or all three of Saturn, Mercury, and Venus yields a special Raja Yoga.",
+                benefics: ["Ve", "Me"],
+                malefics: ["Ma", "Ju", "Mo"],
+                singlePlacements: {
+                    "Su": [2, 3, 6, 8, 10, 11, 12],
+                    "Mo": [1, 2, 4, 5, 7, 9, 10, 11],
+                    "Ma": [2, 6, 8, 12],
+                    "Me": [1, 2, 4, 5, 9, 10, 11],
+                    "Ju": [1, 4, 8, 9, 10, 11, 12],
+                    "Ve": [2, 4, 5, 7, 9, 10, 11],
+                    "Sa": [2, 4, 5, 7, 9, 11],
+                    "Ra": [1, 4, 7, 9, 10],
+                    "Ke": [3, 4, 5, 6, 7, 9, 10, 11]
+                },
+                jantaYogas: [
+                    { planets: ["Su", "Ma"], houses: [1, 3, 5, 6, 8, 9, 10, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Su", "Me"], houses: [1, 4, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Mo", "Me"], houses: [1, 2, 4, 5, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Mo", "Ju"], houses: [1, 2, 4, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Mo", "Ve"], houses: [2, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Mo", "Sa"], houses: [1, 2, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Me", "Ju"], houses: [1, 2, 4, 5, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Me", "Ve"], houses: [1, 2, 4, 5, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Me", "Sa"], houses: [1, 2, 4, 5, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ju", "Ve"], houses: [2, 4, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ju", "Sa"], houses: [3, 6, 8, 12], result: "Highly Favorable" },
+                    { planets: ["Ve", "Sa"], houses: [2, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Sa", "Me", "Ve"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Excellent Yoga. Saturn, Mercury, and Venus together create a tremendous Raja Yoga." }
+                ]
+            },
+            6: { // 6 = Libra Lagna
+                lagnaName: "Libra (Tula)",
+                info: "Sun, Mars, and Jupiter are malefics. Saturn and Mercury are benefics. Saturn alone independently acts as a Raja Yoga provider. Moon-Mercury combination grants Raja Yoga. Malefics like Jupiter act as Marakas (killers).",
+                benefics: ["Sa", "Me"],
+                malefics: ["Su", "Ma", "Ju"],
+                singlePlacements: {
+                    "Su": [2, 3, 4, 5, 6, 7, 9, 11],
+                    "Mo": [3, 4, 5, 6, 9, 10, 12],
+                    "Ma": [1, 2, 4, 5, 7, 9, 11],
+                    "Me": [1, 2, 3, 4, 5, 7, 9, 10, 11],
+                    "Ju": [3, 4, 5, 6, 8, 12],
+                    "Ve": [1, 3, 4, 5, 6, 8, 9, 11, 12],
+                    "Sa": [1, 4, 5, 9, 10]
+                },
+                jantaYogas: [
+                    { planets: ["Su", "Mo"], houses: [3, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Ma"], houses: [2, 4, 5, 7, 8, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Me"], houses: [2, 3, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Mo", "Ma"], houses: [1, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Mo", "Me"], houses: [1, 2, 3, 4, 5, 7, 8, 9, 10], result: "Raja Yoga. Moon and Mercury combination is extremely favorable." },
+                    { planets: ["Mo", "Ve"], houses: [1, 4, 5, 6, 7, 8, 9, 10], result: "Highly Favorable" },
+                    { planets: ["Mo", "Sa"], houses: [1, 4, 5, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ma", "Me"], houses: [1, 2, 4, 5, 7, 9, 11], result: "Highly Favorable" },
+                    { planets: ["Ma", "Sa"], houses: [1, 4, 5, 9, 11], result: "Highly Favorable" },
+                    { planets: ["Me", "Sa"], houses: [1, 2, 4, 5, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ju", "Ve"], houses: [1, 3, 6, 8, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ve", "Sa"], houses: [1, 4, 5, 6, 8, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Sa"], houses: [1, 4, 5, 9, 10], result: "Independent Raja Yoga. Saturn alone gives Raja Yoga independently." },
+                    { planets: ["Ju"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Maraka Danger. As a malefic, Jupiter causes difficulties and acts as a Maraka." }
+                ]
+            },
+            7: { // 7 = Scorpio Lagna
+                lagnaName: "Scorpio (Vrischika)",
+                info: "Mercury, Venus, and Saturn are malefics. Jupiter alone is a benefic. Sun-Moon connection in Kendras/Trikonas acts as a Raja Yoga Karaka. Any combination of three or all four among Sun, Moon, Mars, and Jupiter forms an absolute Akhanda Raja Yoga.",
+                benefics: ["Ju"],
+                malefics: ["Me", "Ve", "Sa"],
+                singlePlacements: {
+                    "Su": [1, 2, 4, 6, 7, 9, 10],
+                    "Mo": [2, 4, 6, 7, 9, 10, 11],
+                    "Ma": [1, 3, 5, 6, 8, 9, 10, 11],
+                    "Me": [3, 6, 8, 9, 11],
+                    "Ju": [1, 2, 4, 5, 7, 9, 10, 11],
+                    "Ve": [1, 4, 5, 7, 9, 10, 11],
+                    "Sa": [2, 4, 7, 8, 9, 10, 11],
+                    "Ra": [3, 5, 6, 7, 8, 9, 10, 11],
+                    "Ke": [1, 3, 5, 6, 9, 10, 11]
+                },
+                jantaYogas: [
+                    { planets: ["Su", "Ma"], houses: [1, 3, 4, 5, 7, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Me"], houses: [3, 6, 8, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Ju"], houses: [1, 4, 5, 6, 7, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Ve"], houses: [1, 2, 4, 5, 6, 7, 9, 10], result: "Highly Favorable" },
+                    { planets: ["Ma", "Mo"], houses: [2, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Sa", "Mo"], houses: [1, 3, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ve", "Mo"], houses: [1, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ma", "Me"], houses: [3, 5, 6, 8, 9, 10, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Ma", "Ju"], houses: [2, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ma", "Ve"], houses: [1, 2, 4, 5, 7, 9, 10], result: "Highly Favorable" },
+                    { planets: ["Ju", "Ve"], houses: [1, 2, 4, 5, 7, 9, 10], result: "Highly Favorable" },
+                    { planets: ["Ve", "Sa"], houses: [1, 2, 3, 4, 5, 7, 9, 10], result: "Highly Favorable" },
+                    { planets: ["Su", "Mo"], houses: [2, 4, 5, 7, 9, 10, 11], result: "Highly Favorable. Creates Raja Yoga in Kendras/Trikonas." },
+                    { planets: ["Su", "Mo", "Ma"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Akhanda Yoga - 3 friendly planets together." },
+                    { planets: ["Su", "Mo", "Ju"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Akhanda Yoga - 3 friendly planets together." },
+                    { planets: ["Su", "Ma", "Ju"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Akhanda Yoga - 3 friendly planets together." },
+                    { planets: ["Mo", "Ma", "Ju"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Akhanda Yoga - 3 friendly planets together." },
+                    { planets: ["Su", "Mo", "Ma", "Ju"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Supreme Akhanda Yoga - All 4 friendly planets combined." }
+                ]
+            },
+            8: { // 8 = Sagittarius Lagna
+                lagnaName: "Sagittarius (Dhanu)",
+                info: "Venus alone is a malefic. Sun and Mercury are Yoga Karakas (benefics). Any three among Sun, Mars, Mercury, and Jupiter combining is exceptionally auspicious. Moon as 8th lord can be a Maraka. Venus lacks Kendradhipatya Dosha, making it favorable in Kendras and Trikonas.",
+                benefics: ["Su", "Me", "Ma"],
+                malefics: ["Ve", "Mo"],
+                singlePlacements: {
+                    "Su": [1, 4, 5, 7, 9],
+                    "Mo": [3, 5, 6, 8, 9, 10, 11],
+                    "Ma": [1, 2, 4, 5, 7, 9, 10, 11],
+                    "Me": [1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12],
+                    "Ju": [1, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                    "Ve": [3, 5, 8, 9, 10, 11, 12],
+                    "Sa": [2, 3, 6, 7, 9, 10, 11],
+                    "Ra": [4, 5, 6, 7, 8, 9, 10, 11],
+                    "Ke": [2, 3, 4, 5, 6, 8, 9, 10, 11]
+                },
+                jantaYogas: [
+                    { planets: ["Su", "Me"], houses: [1, 2, 3, 5, 6, 7, 8, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Ju"], houses: [1, 4, 5, 7, 9, 10], result: "Highly Favorable" },
+                    { planets: ["Su", "Ve"], houses: [1, 2, 3, 4, 5, 7, 9, 10], result: "Highly Favorable" },
+                    { planets: ["Ma", "Mo"], houses: [3, 5, 6, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ma", "Me"], houses: [3, 5, 6, 8, 9, 11], result: "Highly Favorable" },
+                    { planets: ["Ma", "Ju"], houses: [1, 2, 5, 7, 9, 10, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Ma", "Ve"], houses: [1, 4, 5, 7, 8, 9, 10, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Ma", "Sa"], houses: [2, 3, 4, 5, 9, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Me", "Ju"], houses: [1, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Me", "Ve"], houses: [3, 5, 6, 8, 9, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Me", "Sa"], houses: [1, 2, 3, 7, 9, 11], result: "Highly Favorable" },
+                    { planets: ["Ju", "Sa"], houses: [1, 4, 7, 8, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ve", "Sa"], houses: [1, 2, 3, 4, 6, 7, 8, 9, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Ma", "Me"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Excellent Yoga - 3 friendly planets combined." },
+                    { planets: ["Su", "Ma", "Ju"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Excellent Yoga - 3 friendly planets combined." },
+                    { planets: ["Su", "Me", "Ju"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Excellent Yoga - 3 friendly planets combined." },
+                    { planets: ["Ma", "Me", "Ju"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Excellent Yoga - 3 friendly planets combined." },
+                    { planets: ["Su", "Ma", "Me", "Ju"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Supreme Yoga - All 4 friendly planets combined." },
+                    { planets: ["Ve"], houses: [1, 4, 5, 7, 9, 10], result: "Favorable in Kendras/Trikonas. Lacks Kendradhipatya dosha." },
+                    { planets: ["Mo"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Maraka Danger. As the 8th lord, Moon can cause difficulties/maraka." }
+                ]
+            },
+            9: { // 9 = Capricorn Lagna
+                lagnaName: "Capricorn (Makara)",
+                info: "Venus and Mercury are benefics. Jupiter, Moon, and Mars are malefics. Among Mars, Jupiter, and Moon, Jupiter and Moon are the primary malefics. Saturn independently cannot act as a Maraka.",
+                benefics: ["Ve", "Me"],
+                malefics: ["Ju", "Mo", "Ma"],
+                singlePlacements: {
+                    "Su": [3, 5, 6, 8, 9, 11, 12],
+                    "Mo": [1, 2, 4, 5, 7, 9, 10],
+                    "Ma": [1, 2, 4, 5, 6, 8, 9, 10, 11],
+                    "Me": [1, 2, 4, 5, 7, 9, 10, 11],
+                    "Ju": [3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+                    "Ve": [1, 2, 3, 4, 5, 7, 10, 11],
+                    "Sa": [1, 2, 3, 5, 6, 7, 9, 10, 11],
+                    "Ra": [3, 4, 5, 6, 7, 8, 9, 10],
+                    "Ke": [3, 5, 6, 9, 10, 11]
+                },
+                jantaYogas: [
+                    { planets: ["Su", "Me"], houses: [3, 4, 5, 6, 9, 12], result: "Highly Favorable" },
+                    { planets: ["Su", "Ju"], houses: [3, 5, 6, 8, 9, 10, 12], result: "Highly Favorable" },
+                    { planets: ["Mo", "Ma"], houses: [1, 2, 4, 5, 9, 10], result: "Highly Favorable" },
+                    { planets: ["Mo", "Me"], houses: [1, 2, 4, 5, 7, 9, 10], result: "Highly Favorable" },
+                    { planets: ["Mo", "Ve"], houses: [1, 2, 4, 5, 7, 10], result: "Highly Favorable" },
+                    { planets: ["Mo", "Sa"], houses: [1, 2, 5, 7, 9, 10], result: "Highly Favorable" },
+                    { planets: ["Ma", "Me"], houses: [1, 2, 4, 5, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ma", "Ve"], houses: [1, 2, 3, 4, 5, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ma", "Sa"], houses: [1, 3, 5, 6, 9, 11], result: "Highly Favorable" },
+                    { planets: ["Ju", "Me"], houses: [5, 6, 8, 9, 10, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Me", "Ve"], houses: [1, 2, 4, 5, 6, 7, 8, 10, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Me", "Sa"], houses: [1, 2, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Ma"], houses: [3, 4, 5, 6, 8, 9, 11], result: "Highly Favorable" },
+                    { planets: ["Sa", "Me", "Ve"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Excellent Yoga - Saturn, Mercury, and Venus combined." },
+                    { planets: ["Sa", "Me", "Mo"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Excellent Yoga - Saturn, Mercury, and Moon combined." },
+                    { planets: ["Su", "Ma", "Ju"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Excellent Yoga - Sun, Mars, and Jupiter combined." },
+                    { planets: ["Sa"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "No Maraka Danger - Saturn independently does not act as a Maraka." }
+                ]
+            },
+            10: { // 10 = Aquarius Lagna
+                lagnaName: "Aquarius (Kumbha)",
+                info: "Jupiter, Moon, and Mars are malefics. Venus alone is a benefic. Mars-Venus connection is auspicious. Sun-Mars-Jupiter or Sun-Mars-Venus combinations yield great results.",
+                benefics: ["Ve"],
+                malefics: ["Ju", "Mo", "Ma"],
+                singlePlacements: {
+                    "Su": [1, 2, 3, 5, 7, 10, 11],
+                    "Mo": [3, 5, 8, 9, 10, 11, 12],
+                    "Ma": [3, 4, 5, 7, 9, 10, 11],
+                    "Me": [1, 3, 4, 5, 7, 8, 9, 10, 11],
+                    "Ju": [1, 2, 4, 5, 6, 7, 9, 10, 11],
+                    "Ve": [1, 2, 4, 5, 7, 9, 10, 11],
+                    "Sa": [1, 4, 5, 7, 9, 10, 11],
+                    "Ra": [2, 3, 4, 5, 6, 7, 8, 9, 11],
+                    "Ke": [3, 5, 6, 9, 10, 11]
+                },
+                jantaYogas: [
+                    { planets: ["Su", "Mo"], houses: [3, 6, 8, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Ma"], houses: [1, 3, 4, 5, 7, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Me"], houses: [2, 3, 5, 7, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Ju"], houses: [1, 2, 3, 4, 5, 6, 7, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Ve"], houses: [1, 2, 3, 4, 5, 6, 7, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Me", "Mo"], houses: [3, 5, 6, 8, 9, 10, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Sa", "Mo"], houses: [1, 4, 5, 6, 7, 8, 9, 11, 12], result: "Highly Favorable" },
+                    { planets: ["Ma", "Mo"], houses: [3, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ma", "Ve"], houses: [1, 2, 3, 4, 5, 7, 9, 10, 11], result: "Highly Favorable. Mars-Venus connection is auspicious." },
+                    { planets: ["Me", "Ju"], houses: [1, 2, 3, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Sa", "Me"], houses: [1, 4, 5, 6, 7, 8, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ju", "Ve"], houses: [1, 2, 4, 5, 6, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Sa", "Ju"], houses: [1, 2, 4, 5, 6, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ve", "Sa"], houses: [1, 2, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Ma", "Ju"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Excellent Yoga - Sun, Mars, and Jupiter combined." },
+                    { planets: ["Su", "Ma", "Ve"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Excellent Yoga - Sun, Mars, and Venus combined." }
+                ]
+            },
+            11: { // 11 = Pisces Lagna
+                lagnaName: "Pisces (Meena)",
+                info: "Saturn, Venus, Sun, and Mercury are malefics. Mars, Moon, and Jupiter are benefics (Yoga Karakas). Any two or all three of Mars, Jupiter, and Moon combining grants an exceptional Raja Yoga.",
+                benefics: ["Ma", "Mo", "Ju"],
+                malefics: ["Sa", "Ve", "Su", "Me"],
+                singlePlacements: {
+                    "Su": [3, 5, 6, 9, 10, 11],
+                    "Mo": [1, 2, 3, 4, 5, 7, 10, 11],
+                    "Ma": [1, 2, 4, 7, 9, 10, 11],
+                    "Me": [4, 5, 6, 8, 9, 10, 11, 12],
+                    "Ju": [1, 2, 4, 5, 7, 9, 10],
+                    "Ve": [3, 5, 6, 8, 9, 10, 11, 12],
+                    "Sa": [3, 5, 6, 7, 8, 9, 10, 11],
+                    "Ra": [3, 4, 5, 6, 7, 8, 10, 11],
+                    "Ke": [1, 3, 4, 5, 10, 11]
+                },
+                jantaYogas: [
+                    { planets: ["Su", "Me"], houses: [2, 4, 5, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Su", "Ju"], houses: [3, 5, 6, 9, 10], result: "Highly Favorable" },
+                    { planets: ["Su", "Ve"], houses: [3, 5, 6, 9, 12], result: "Highly Favorable" },
+                    { planets: ["Mo", "Ma"], houses: [1, 2, 3, 4, 7, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Me", "Ju"], houses: [2, 4, 5, 7, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ju", "Mo"], houses: [1, 3, 4, 5, 7, 10], result: "Highly Favorable" },
+                    { planets: ["Ma", "Me"], houses: [2, 4, 7, 9, 10, 11], result: "Highly Favorable" },
+                    { planets: ["Ma", "Ju"], houses: [1, 2, 4, 5, 7, 9, 10], result: "Highly Favorable" },
+                    { planets: ["Ve", "Sa"], houses: [3, 6, 8, 12], result: "Highly Favorable" },
+                    { planets: ["Ma", "Ju", "Mo"], houses: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12], result: "Excellent Yoga - Mars, Jupiter, and Moon combined yield great results." }
+                ]
+            }
+        };
+
+        // --- 2. CONSTANTS ---
+        const rasis = [
+            "Aries", "Taurus", "Gemini", "Cancer", "Leo", "Virgo", 
+            "Libra", "Scorpio", "Sagittarius", "Capricorn", "Aquarius", "Pisces"
+        ];
+        
+        const planets = [
+            { id: 'Su', name: 'Sun', colorClass: 'graha-su', fullName: 'Surya (Sun)' },
+            { id: 'Mo', name: 'Moon', colorClass: 'graha-mo', fullName: 'Chandra (Moon)' },
+            { id: 'Ma', name: 'Mars', colorClass: 'graha-ma', fullName: 'Kuja (Mars)' },
+            { id: 'Me', name: 'Merc', colorClass: 'graha-me', fullName: 'Budha (Mercury)' },
+            { id: 'Ju', name: 'Jup', colorClass: 'graha-ju', fullName: 'Guru (Jupiter)' },
+            { id: 'Ve', name: 'Ven', colorClass: 'graha-ve', fullName: 'Shukra (Venus)' },
+            { id: 'Sa', name: 'Sat', colorClass: 'graha-sa', fullName: 'Shani (Saturn)' },
+            { id: 'Ra', name: 'Rahu', colorClass: 'graha-ra', fullName: 'Rahu' },
+            { id: 'Ke', name: 'Ketu', colorClass: 'graha-ke', fullName: 'Ketu' }
+        ];
+
+        // --- 3. STATE ---
+        let currentLagna = 0; // 0 = Aries
+        let planetPositions = {}; 
+        let selectedPlanet = null; 
+
+        // --- 4. INITIALIZATION ---
+        function init() {
+            planets.forEach(p => planetPositions[p.id] = null);
+            
+            const board = document.getElementById('chart-board');
+            for(let i = 0; i < 12; i++) {
+                const box = document.createElement('div');
+                box.className = 'rasi-box';
+                box.id = `rasi-${i}`;
+                box.onclick = () => handleBoxClick(i);
+                
+                // --- Drag and Drop Logic for Houses ---
+                box.ondragover = (e) => {
+                    e.preventDefault(); // Allows dropping
+                    box.classList.add('highlight');
+                };
+                box.ondragleave = (e) => {
+                    box.classList.remove('highlight');
+                };
+                box.ondrop = (e) => {
+                    e.preventDefault();
+                    box.classList.remove('highlight');
+                    const planetId = e.dataTransfer.getData('text/plain');
+                    if (planetId) {
+                        planetPositions[planetId] = i; // Place planet in new house
+                        selectedPlanet = null; // Clear any active click selections
+                        renderPlanets();
+                    }
+                };
+                
+                const label = document.createElement('span');
+                label.className = 'rasi-label';
+                label.innerText = rasis[i].substring(0, 2);
+                box.appendChild(label);
+                
+                board.appendChild(box);
+            }
+            
+            const centerHole = document.createElement('div');
+            centerHole.className = 'empty-center center-hole';
+            board.appendChild(centerHole);
+
+            // --- Drag and Drop Logic for Returning to Dock ---
+            const dock = document.getElementById('graha-dock');
+            dock.ondragover = (e) => {
+                e.preventDefault();
+                dock.classList.add('bg-slate-100'); // Visual cue for dock drop
+            };
+            dock.ondragleave = (e) => {
+                dock.classList.remove('bg-slate-100');
+            };
+            dock.ondrop = (e) => {
+                e.preventDefault();
+                dock.classList.remove('bg-slate-100');
+                const planetId = e.dataTransfer.getData('text/plain');
+                if (planetId) {
+                    planetPositions[planetId] = null;
+                    selectedPlanet = null;
+                    renderPlanets();
+                }
+            };
+            // Allow returning to dock via click as well
+            dock.onclick = () => {
+                if (selectedPlanet !== null) {
+                    planetPositions[selectedPlanet] = null;
+                    selectedPlanet = null;
+                    renderPlanets();
+                }
+            };
+
+            document.getElementById('lagna-select').addEventListener('change', (e) => {
+                currentLagna = parseInt(e.target.value);
+                updateChartLabels();
+                updateResults();
+            });
+
+            updateChartLabels();
+            renderPlanets();
+        }
+
+        // --- 5. LOGIC & RENDERING ---
+        function updateChartLabels() {
+            document.querySelectorAll('.bhava-label').forEach(el => el.remove());
+
+            for (let i = 0; i < 12; i++) {
+                const box = document.getElementById(`rasi-${i}`);
+                box.style.border = '';
+                box.style.backgroundColor = '';
+                
+                let houseNum = ((i - currentLagna + 12) % 12) + 1;
+                
+                const bhavaLabel = document.createElement('span');
+                bhavaLabel.className = 'bhava-label';
+                bhavaLabel.innerText = houseNum === 1 ? 'Lagna' : houseNum;
+                if(houseNum === 1) {
+                    bhavaLabel.style.backgroundColor = '#fef08a';
+                    bhavaLabel.style.color = '#854d0e';
+                    box.style.backgroundColor = '#fefce8';
+                }
+                box.appendChild(bhavaLabel);
+            }
+        }
+
+        function renderPlanets() {
+            const dock = document.getElementById('graha-dock');
+            dock.innerHTML = '';
+            
+            for (let i = 0; i < 12; i++) {
+                const box = document.getElementById(`rasi-${i}`);
+                const existingGrahas = box.querySelectorAll('.graha');
+                existingGrahas.forEach(g => g.remove());
+            }
+
+            planets.forEach(planet => {
+                const pDiv = document.createElement('div');
+                pDiv.className = `graha ${planet.colorClass}`;
+                pDiv.innerText = planet.id;
+                pDiv.title = planet.fullName;
+                
+                // --- Enable Dragging on Planets ---
+                pDiv.setAttribute('draggable', 'true');
+                pDiv.ondragstart = (e) => {
+                    e.dataTransfer.setData('text/plain', planet.id);
+                    selectedPlanet = null; // Clear click selection if dragging starts
+                };
+                
+                pDiv.onclick = (e) => {
+                    e.stopPropagation(); 
+                    handlePlanetClick(planet.id);
+                };
+
+                if (selectedPlanet === planet.id) pDiv.classList.add('selected');
+
+                const position = planetPositions[planet.id];
+                if (position === null) {
+                    dock.appendChild(pDiv);
+                } else {
+                    document.getElementById(`rasi-${position}`).appendChild(pDiv);
+                }
+            });
+            
+            updateResults();
+        }
+
+        // --- 6. INTERACTIONS ---
+        function handlePlanetClick(planetId) {
+            // Simply toggle selection state for ANY planet clicked.
+            // This allows picking up a planet from the board and moving it!
+            selectedPlanet = (selectedPlanet === planetId) ? null : planetId;
+            renderPlanets();
+        }
+
+        function handleBoxClick(rasiIndex) {
+            if (selectedPlanet !== null) {
+                planetPositions[selectedPlanet] = rasiIndex;
+                selectedPlanet = null; 
+                renderPlanets();
+            }
+        }
+
+        function resetChart() {
+            planets.forEach(p => planetPositions[p.id] = null);
+            selectedPlanet = null;
+            renderPlanets();
+        }
+
+        // --- 7. RESULT CALCULATION ---
+        function updateResults() {
+            const panel = document.getElementById('results-panel');
+            panel.innerHTML = ''; 
+
+            let hasPlacements = false;
+            const currentData = astrologicalData[currentLagna];
+
+            // Group placed planets by house
+            const planetsInHouse = {};
+            for(let i=1; i<=12; i++) planetsInHouse[i] = [];
+
+            planets.forEach(planet => {
+                const position = planetPositions[planet.id];
+                if (position !== null) {
+                    hasPlacements = true;
+                    let houseNum = ((position - currentLagna + 12) % 12) + 1;
+                    planetsInHouse[houseNum].push(planet);
+                }
+            });
+
+            if (!hasPlacements) {
+                panel.innerHTML = `<div class="text-slate-400 italic text-center mt-10">Place planets on the board to see their effects.</div>`;
+                return;
+            }
+
+            // Show Lagna specific notes if they exist
+            if (currentData?.info) {
+                panel.innerHTML += `
+                    <div class="p-3 mb-4 rounded-lg bg-blue-50 border border-blue-100 text-sm text-blue-800">
+                        <strong>Lagna Rule:</strong> ${currentData.info}
+                    </div>
+                `;
+            }
+
+            if (!currentData) {
+                panel.innerHTML += `
+                    <div class="p-4 rounded-lg bg-orange-50 border border-orange-200 text-orange-800 text-sm">
+                        Specific textual rules for this Lagna have not been loaded into the system yet.
+                    </div>
+                `;
+            }
+
+            // Evaluate placements per house
+            Object.keys(planetsInHouse).forEach(house => {
+                const houseNum = parseInt(house);
+                const placedPlanets = planetsInHouse[houseNum];
+                if (placedPlanets.length === 0) return;
+
+                const absolutePos = (currentLagna + houseNum - 1) % 12;
+                const rasiName = rasis[absolutePos];
+
+                const houseCard = document.createElement('div');
+                houseCard.className = 'p-4 rounded-lg bg-white shadow-sm border border-slate-200 mb-4';
+                
+                let html = `<h3 class="font-bold text-slate-800 mb-3 border-b border-slate-100 pb-2">
+                                ${houseNum}${getOrdinalSuffix(houseNum)} House <span class="text-slate-500 font-normal">(${rasiName})</span>
+                            </h3>
+                            <div class="space-y-3">`;
+
+                // Evaluate Singles
+                placedPlanets.forEach(planet => {
+                    let interpretation = "General placement (No specific rule listed in text).";
+                    let badge = "";
+
+                    if (currentData?.singlePlacements?.[planet.id]?.includes(houseNum)) {
+                        interpretation = "<span class='text-green-600 font-medium'>Yoga Karaka</span>: Favorable placement.";
+                    }
+
+                    if (currentData?.benefics?.includes(planet.id)) {
+                        badge = `<span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-green-100 text-green-700 ml-2">Benefic</span>`;
+                    } else if (currentData?.malefics?.includes(planet.id)) {
+                        badge = `<span class="px-2 py-0.5 text-[10px] font-bold uppercase rounded-full bg-red-100 text-red-700 ml-2">Malefic</span>`;
+                    }
+
+                    html += `
+                        <div class="flex items-start gap-3">
+                            <div class="graha ${planet.colorClass} !w-6 !h-6 !text-[10px] !cursor-default !shadow-none !transform-none shrink-0 mt-0.5">
+                                ${planet.id}
+                            </div>
+                            <div>
+                                <div class="text-sm font-bold text-slate-700">${planet.fullName} ${badge}</div>
+                                <div class="text-sm text-slate-600">${interpretation}</div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                // Evaluate Combos & Special Rules (Janta Yogas)
+                if (currentData?.jantaYogas) {
+                    const placedIds = placedPlanets.map(p => p.id);
+                    
+                    currentData.jantaYogas.forEach(yoga => {
+                        const isMatch = yoga.planets.every(p => placedIds.includes(p));
+                        if (isMatch && yoga.houses.includes(houseNum)) {
+                            const titleText = yoga.planets.length > 1 ? 'Combo Yoga: ' + yoga.planets.join(' + ') : 'Special Rule: ' + yoga.planets[0];
+                            html += `
+                                <div class="mt-3 p-3 bg-indigo-50 border border-indigo-100 rounded-lg">
+                                    <div class="text-xs font-bold text-indigo-800 uppercase tracking-wider mb-1">
+                                        ${titleText}
+                                    </div>
+                                    <div class="text-sm text-indigo-900">
+                                        ${yoga.result}
+                                    </div>
+                                </div>
+                            `;
+                        }
+                    });
+                }
+
+                html += `</div>`;
+                houseCard.innerHTML = html;
+                panel.appendChild(houseCard);
+            });
+        }
+
+        function getOrdinalSuffix(i) {
+            let j = i % 10, k = i % 100;
+            if (j == 1 && k != 11) return "st";
+            if (j == 2 && k != 12) return "nd";
+            if (j == 3 && k != 13) return "rd";
+            return "th";
+        }
+
+        init();
+    </script>
+</body>
+</html>
